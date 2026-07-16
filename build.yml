@@ -1,0 +1,50 @@
+name: Compilar XCS2SVG Converter (Windows)
+
+# Se ejecuta automaticamente al subir cambios a main, o manualmente desde la pestaña
+# "Actions" de GitHub ("Run workflow"). No requiere tener Windows: GitHub ejecuta
+# este proceso en una maquina Windows gratuita en la nube (windows-latest).
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch: {}
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - name: Descargar el codigo
+        uses: actions/checkout@v4
+
+      - name: Instalar Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Instalar dependencias
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Compilar ejecutable con PyInstaller
+        run: |
+          pyinstaller --noconfirm --onefile --windowed --name "XCS2SVG_Converter" --icon "icon.ico" --collect-data tkinterdnd2 --hidden-import pypdf gui.py
+
+      - name: Instalar Inno Setup
+        run: |
+          choco install innosetup -y
+
+      - name: Compilar instalador
+        run: |
+          & "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" installer.iss
+
+      - name: Publicar el instalador como artefacto descargable
+        uses: actions/upload-artifact@v4
+        with:
+          name: XCS2SVG_Converter_Setup
+          path: Output\XCS2SVG_Converter_Setup.exe
+
+      - name: Publicar tambien el .exe suelto (sin instalador)
+        uses: actions/upload-artifact@v4
+        with:
+          name: XCS2SVG_Converter_exe_suelto
+          path: dist\XCS2SVG_Converter.exe
